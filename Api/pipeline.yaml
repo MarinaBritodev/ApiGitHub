@@ -1,0 +1,61 @@
+trigger:
+  - develop
+  - master
+
+pool:
+  vmImage: ubuntu-latest
+
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: Operações/template-take-blip
+      ref: refs/tags/v1.3
+
+variables:
+  - group: desafio-lora-bot-config
+  - name: team
+    value: Chicago
+  - name: skipDecorator
+    value: true
+  - name: framework
+    value: dotnet
+
+extends:
+  template: template-pipeline.yml@templates
+  parameters:
+    packagename: desafio-lora-bot
+    type: dotnet
+    to: kubernetes
+    contextpath: 'Api'
+    stages:
+      - name: staging
+        condition:
+          and(or(ne(variables['build.sourceBranchName'], 'master'),
+          ne(variables['build.sourceBranchName'],
+          'main')),ne(variables['Build.Reason'], 'PullRequest'))
+        dependsOn: build
+        environment: staging
+        variables:
+          - "chicago-hmg-kv"
+        ServiceConnection: 'AKS BOT BETA-STAGING-$(System.TeamProject)'
+      - name: beta
+        condition:
+          and(or(ne(variables['build.sourceBranchName'], 'master'),
+          ne(variables['build.sourceBranchName'],
+          'main')),ne(variables['Build.Reason'], 'PullRequest'))
+        dependsOn: staging
+        environment: beta
+        variables:
+          - "chicago-hmg-kv"
+        ServiceConnection: 'AKS BOT BETA-STAGING-$(System.TeamProject)'
+      - name: production
+        condition:
+          and(or(eq(variables['build.sourceBranchName'], 'master'),
+          eq(variables['build.sourceBranchName'],
+          'main')),ne(variables['Build.Reason'], 'PullRequest'))
+        dependsOn: beta
+        environment: production
+        variables:
+          - "chicago-prd-kv"
+        ServiceConnection: 'AKS BOT PROD-$(System.TeamProject)'

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "desafio-lora-bot.fullname" . }}-{{ .Values.environment.stage }}
+  labels:
+    app: {{ template "desafio-lora-bot.name" . }}
+    chart: {{ template "desafio-lora-bot.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ template "desafio-lora-bot.name" . }}
+    release: {{ .Release.Name }}
